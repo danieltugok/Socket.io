@@ -13,5 +13,6 @@
     fs.open('./papo.txt', 'a+',
     abre o arquivo papo.txt, caso não encontre, a flag "a+" cria o
     arquivo. 
+    
 
 

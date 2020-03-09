@@ -6,7 +6,6 @@ var server = http.createServer(app);
 var io = require('socket.io').listen(server);
 
 app.get("/chat", function(req, res){
-    console.log('HOMEPAGE - BRABO');
     res.sendFile(__dirname + '/views/cliente.html')
 })
 
