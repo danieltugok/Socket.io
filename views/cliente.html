@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.css"/>
+        <script type="text/javascript" src="https://code.jquery.com/jquery-3.2.1.js"  ></script>
+        <script type="text/javascript" src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+        <style>
+            .nome{
+                background: #240c32;
+                padding: 5px 10px;
+                border-radius: 25px;
+                color: #fff;
+            }
+            .mensagem{
+                background: #e38f1b;
+                padding: 5px 10px;
+                border-radius: 5px;
+                color: #fff;
+            }
+            li{
+                list-style: none;
+            }
+            h2{
+                text-align: center;
+                padding: 15px 0;
+                color: #3a1be3;
+            }
+            .form-inline{
+                position: fixed;
+                bottom: 0;
+            }
+            .input-group-text.name{
+                background: #240c32;
+                color: #fff;
+            }
+            .input-group-text.msg{
+                background: #e38f1b;
+                color: #fff;
+            }
+            .card-body{
+                height: 400px;
+                overflow: auto;
+            }
+            .btn{
+                background: #3a1be3;
+                color: #fff;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="row"> 
+                <div class="col-8 offset-2">
+                    <h2>Express Socket.io</h2>
+                    
+
+                    <div class="card">
+                        <div class="card-header">
+                          Chat
+                        </div>
+                        <div class="card-body">
+                            <div id="news-lista">
+
+                            </div>                         
+                        </div>
+                    </div>
+
+                    <div class="row">
+
+                      <div class="form-inline">
+                            <div class="input-group mb-2 mr-sm-2">
+                                <div class="input-group-prepend">
+                                  <div class="input-group-text name">Nome</div>
+                                </div>
+                                <input type="text" class="form-control" id="nome">
+                              </div>
+                          
+                            <div class="input-group mb-2 mr-sm-2">
+                              <div class="input-group-prepend">
+                                <div class="input-group-text msg">Mensagem</div>
+                              </div>
+                              <input type="text" class="form-control" id="mensagem" >
+                            </div>              
+                          
+                            <button type="submit" class="btn mb-2" id="btn1">Submit</button>
+                        </div>
+                        
+                    </div>
+                                       
+                </div>                
+                
+            
+            </div>
+            
+
+        </div>        
+
+        <script src="/socket.io/socket.io.js"></script>
+
+        <script>
+            var socket = io('http://localhost:3010');
+
+            $(document).ready(function(){
+                socket.on('news',function(data){
+                    
+                    var div = document.getElementById('news-lista');
+                    div.innerHTML= "";
+                    
+                    for(var i = 0; i < data.length; i++){
+                        var newsItem = data[i];
+                        div.innerHTML += 
+                        "<li>"+"<span class='nome'>" + newsItem.nome +"</span> "+ " <span>Diz:</span> " +"<span class='mensagem'>" + newsItem.mensagem + "</span>" + "</li>" + "<br>";
+                    }
+                });
+                    $("#btn1").click(function(){
+                        socket.emit('pontocheck',
+                        {'nome': $("#nome").val(), "mensagem": $("#mensagem").val()}
+                        );
+                    })
+                });
+           
+
+        </script>
+
+    </body>
+</html>
