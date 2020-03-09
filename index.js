@@ -26,7 +26,7 @@ io.on('connection', function(socket){
         let nome = data.nome;
         let mensagem = data.mensagem; 
 
-        fs.open('./papo.txt', 'a+', 0x777, (err, data)=>{
+        fs.open('./papo.txt', 'a+', (err, data)=>{
             if(err) 
             return console.error(err);      
                  
