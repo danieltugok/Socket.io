@@ -1,128 +1,367 @@
 <!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Express Socket.io Chat</title>
+    <style>
+        :root {
+            --roxo: #240c32;
+            --laranja: #e38f1b;
+            --azul: #3a1be3;
+            --fundo: #f4f2f8;
+            --card: #fff;
+            --texto: #222;
+            --suave: #777;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            background: var(--fundo);
+            color: var(--texto);
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            background: var(--roxo);
+            color: #fff;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        header h1 { font-size: 1.1rem; margin: 0; }
+        .status { font-size: .85rem; display: flex; align-items: center; gap: 6px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; background: #c0392b; }
+        .dot.on { background: #2ecc71; }
 
-<html>
-    <head>
-        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.css"/>
-        <script type="text/javascript" src="https://code.jquery.com/jquery-3.2.1.js"  ></script>
-        <script type="text/javascript" src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-        <style>
-            .nome{
-                background: #240c32;
-                padding: 5px 10px;
-                border-radius: 25px;
-                color: #fff;
+        main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 220px;
+            gap: 16px;
+            padding: 16px;
+            max-width: 1000px;
+            width: 100%;
+            margin: 0 auto;
+            min-height: 0;
+        }
+        .card {
+            background: var(--card);
+            border-radius: 10px;
+            box-shadow: 0 1px 4px rgba(0,0,0,.08);
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        .card h2 {
+            font-size: .95rem;
+            margin: 0;
+            padding: 10px 14px;
+            border-bottom: 1px solid #eee;
+            color: var(--azul);
+        }
+
+        #mensagens {
+            list-style: none;
+            margin: 0;
+            padding: 14px;
+            overflow-y: auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .msg { max-width: 75%; align-self: flex-start; }
+        .msg.minha { align-self: flex-end; text-align: right; }
+        .msg .meta { font-size: .75rem; color: var(--suave); margin-bottom: 2px; }
+        .msg .meta .nome {
+            background: var(--roxo);
+            color: #fff;
+            padding: 1px 8px;
+            border-radius: 25px;
+            margin-right: 4px;
+        }
+        .msg .texto {
+            display: inline-block;
+            background: var(--laranja);
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            text-align: left;
+        }
+        .msg.minha .texto { background: var(--azul); }
+        .sistema {
+            align-self: center;
+            font-size: .8rem;
+            color: var(--suave);
+            font-style: italic;
+        }
+        #digitando { min-height: 1.4em; padding: 0 14px 6px; font-size: .8rem; color: var(--suave); }
+
+        #usuarios { list-style: none; margin: 0; padding: 10px 14px; overflow-y: auto; }
+        #usuarios li { padding: 4px 0; display: flex; align-items: center; gap: 6px; }
+        #usuarios li::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #2ecc71; }
+        #usuarios li.eu { font-weight: 600; }
+
+        form#envio {
+            display: flex;
+            gap: 8px;
+            padding: 10px;
+            border-top: 1px solid #eee;
+        }
+        input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font: inherit;
+            min-width: 0;
+        }
+        button {
+            background: var(--azul);
+            color: #fff;
+            border: 0;
+            border-radius: 6px;
+            padding: 10px 16px;
+            font: inherit;
+            cursor: pointer;
+        }
+        button:disabled { opacity: .5; cursor: not-allowed; }
+
+        #entrar {
+            position: fixed;
+            inset: 0;
+            background: rgba(36,12,50,.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        #entrar form {
+            background: #fff;
+            padding: 24px;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 340px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        #entrar h2 { margin: 0; color: var(--roxo); }
+        .hidden { display: none !important; }
+
+        @media (max-width: 640px) {
+            main { grid-template-columns: 1fr; padding: 8px; }
+            #painel-usuarios { max-height: 110px; order: -1; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Express Socket.io</h1>
+        <div class="status">
+            <span class="dot" id="status-dot"></span>
+            <span id="status-texto">Conectando…</span>
+        </div>
+    </header>
+
+    <main>
+        <section class="card">
+            <h2>Chat <span id="meu-nome"></span></h2>
+            <ul id="mensagens"></ul>
+            <div id="digitando"></div>
+            <form id="envio" autocomplete="off">
+                <input id="mensagem" maxlength="500" placeholder="Digite sua mensagem…" disabled>
+                <button type="submit" id="btn-enviar" disabled>Enviar</button>
+            </form>
+        </section>
+
+        <aside class="card" id="painel-usuarios">
+            <h2>Online (<span id="total-online">0</span>)</h2>
+            <ul id="usuarios"></ul>
+        </aside>
+    </main>
+
+    <div id="entrar">
+        <form id="form-entrar" autocomplete="off">
+            <h2>Qual é o seu nome?</h2>
+            <input id="nome" maxlength="30" placeholder="Seu nome" required>
+            <button type="submit">Entrar no chat</button>
+        </form>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // Sem URL: conecta no mesmo host/porta que serviu a página (funciona local e na Hostinger).
+        const socket = io();
+
+        const $ = (id) => document.getElementById(id);
+        const lista = $('mensagens');
+        const inputMsg = $('mensagem');
+        const btnEnviar = $('btn-enviar');
+
+        let meuNome = localStorage.getItem('chat-nome') || '';
+        let naoLidas = 0;
+        const tituloOriginal = document.title;
+        const digitando = new Set();
+
+        function formatarHora(ts) {
+            return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function rolarParaBaixo() {
+            lista.scrollTop = lista.scrollHeight;
+        }
+
+        // textContent em vez de innerHTML: evita que alguém injete HTML/JS pelo chat.
+        function adicionarMensagem(msg) {
+            const li = document.createElement('li');
+            li.className = 'msg' + (msg.name === meuNome ? ' minha' : '');
+
+            const meta = document.createElement('div');
+            meta.className = 'meta';
+            const nome = document.createElement('span');
+            nome.className = 'nome';
+            nome.textContent = msg.name;
+            meta.append(nome, formatarHora(msg.ts));
+
+            const texto = document.createElement('div');
+            texto.className = 'texto';
+            texto.textContent = msg.text;
+
+            li.append(meta, texto);
+            lista.append(li);
+        }
+
+        function adicionarSistema(texto) {
+            const li = document.createElement('li');
+            li.className = 'sistema';
+            li.textContent = texto;
+            lista.append(li);
+        }
+
+        function atualizarDigitando() {
+            const nomes = [...digitando];
+            $('digitando').textContent =
+                nomes.length === 0 ? '' :
+                nomes.length === 1 ? `${nomes[0]} está digitando…` :
+                `${nomes.join(', ')} estão digitando…`;
+        }
+
+        function entrar(nome) {
+            socket.emit('join', nome, (res) => {
+                if (!res.ok) return alert(res.error);
+                meuNome = res.name;
+                localStorage.setItem('chat-nome', meuNome);
+                $('meu-nome').textContent = `— você é ${meuNome}`;
+                $('entrar').classList.add('hidden');
+                inputMsg.disabled = false;
+                btnEnviar.disabled = false;
+                inputMsg.focus();
+            });
+        }
+
+        // ---- Conexão ----
+        socket.on('connect', () => {
+            $('status-dot').classList.add('on');
+            const transporte = () => socket.io.engine.transport.name; // "polling" ou "websocket"
+            $('status-texto').textContent = `Conectado (${transporte()})`;
+            socket.io.engine.once('upgrade', () => {
+                $('status-texto').textContent = `Conectado (${transporte()})`;
+            });
+            // Reentra automaticamente após reconexão (ex.: servidor reiniciou).
+            if (meuNome) entrar(meuNome);
+        });
+
+        socket.on('disconnect', () => {
+            $('status-dot').classList.remove('on');
+            $('status-texto').textContent = 'Desconectado — tentando reconectar…';
+            inputMsg.disabled = true;
+            btnEnviar.disabled = true;
+        });
+
+        // ---- Eventos do servidor ----
+        socket.on('history', (msgs) => {
+            lista.innerHTML = '';
+            msgs.forEach(adicionarMensagem);
+            rolarParaBaixo();
+        });
+
+        socket.on('message', (msg) => {
+            const estavaNoFim = lista.scrollHeight - lista.scrollTop - lista.clientHeight < 60;
+            adicionarMensagem(msg);
+            if (estavaNoFim || msg.name === meuNome) rolarParaBaixo();
+
+            digitando.delete(msg.name);
+            atualizarDigitando();
+
+            if (document.hidden && msg.name !== meuNome) {
+                naoLidas++;
+                document.title = `(${naoLidas}) ${tituloOriginal}`;
             }
-            .mensagem{
-                background: #e38f1b;
-                padding: 5px 10px;
-                border-radius: 5px;
-                color: #fff;
+        });
+
+        socket.on('system', (msg) => {
+            adicionarSistema(msg.text);
+            rolarParaBaixo();
+        });
+
+        socket.on('users', (nomes) => {
+            const ul = $('usuarios');
+            ul.innerHTML = '';
+            nomes.forEach((nome) => {
+                const li = document.createElement('li');
+                li.textContent = nome;
+                if (nome === meuNome) li.className = 'eu';
+                ul.append(li);
+            });
+            $('total-online').textContent = nomes.length;
+        });
+
+        socket.on('typing', ({ name, isTyping }) => {
+            isTyping ? digitando.add(name) : digitando.delete(name);
+            atualizarDigitando();
+        });
+
+        // ---- Ações do usuário ----
+        $('form-entrar').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const nome = $('nome').value.trim();
+            if (nome) entrar(nome);
+        });
+
+        let timerDigitando = null;
+        inputMsg.addEventListener('input', () => {
+            socket.emit('typing', true);
+            clearTimeout(timerDigitando);
+            timerDigitando = setTimeout(() => socket.emit('typing', false), 1500);
+        });
+
+        $('envio').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const texto = inputMsg.value.trim();
+            if (!texto) return;
+            socket.emit('message', texto);
+            socket.emit('typing', false);
+            clearTimeout(timerDigitando);
+            inputMsg.value = '';
+            inputMsg.focus();
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                naoLidas = 0;
+                document.title = tituloOriginal;
             }
-            li{
-                list-style: none;
-            }
-            h2{
-                text-align: center;
-                padding: 15px 0;
-                color: #3a1be3;
-            }
-            .form-inline{
-                position: fixed;
-                bottom: 0;
-            }
-            .input-group-text.name{
-                background: #240c32;
-                color: #fff;
-            }
-            .input-group-text.msg{
-                background: #e38f1b;
-                color: #fff;
-            }
-            .card-body{
-                height: 400px;
-                overflow: auto;
-            }
-            .btn{
-                background: #3a1be3;
-                color: #fff;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="row"> 
-                <div class="col-8 offset-2">
-                    <h2>Express Socket.io</h2>
-                    
+        });
 
-                    <div class="card">
-                        <div class="card-header">
-                          Chat
-                        </div>
-                        <div class="card-body">
-                            <div id="news-lista">
-
-                            </div>                         
-                        </div>
-                    </div>
-
-                    <div class="row">
-
-                      <div class="form-inline">
-                            <div class="input-group mb-2 mr-sm-2">
-                                <div class="input-group-prepend">
-                                  <div class="input-group-text name">Nome</div>
-                                </div>
-                                <input type="text" class="form-control" id="nome">
-                              </div>
-                          
-                            <div class="input-group mb-2 mr-sm-2">
-                              <div class="input-group-prepend">
-                                <div class="input-group-text msg">Mensagem</div>
-                              </div>
-                              <input type="text" class="form-control" id="mensagem" >
-                            </div>              
-                          
-                            <button type="submit" class="btn mb-2" id="btn1">Submit</button>
-                        </div>
-                        
-                    </div>
-                                       
-                </div>                
-                
-            
-            </div>
-            
-
-        </div>        
-
-        <script src="/socket.io/socket.io.js"></script>
-
-        <script>
-            var socket = io('http://localhost:3010');
-
-            $(document).ready(function(){
-                socket.on('news',function(data){
-                    
-                    var div = document.getElementById('news-lista');
-                    div.innerHTML= "";
-                    
-                    for(var i = 0; i < data.length; i++){
-                        var newsItem = data[i];
-                        div.innerHTML += 
-                        "<li>"+"<span class='nome'>" + newsItem.nome +"</span> "+ " <span>Diz:</span> " +"<span class='mensagem'>" + newsItem.mensagem + "</span>" + "</li>" + "<br>";
-                    }
-                });
-                    $("#btn1").click(function(){
-                        socket.emit('pontocheck',
-                        {'nome': $("#nome").val(), "mensagem": $("#mensagem").val()}
-                        );
-                    })
-                });
-           
-
-        </script>
-
-    </body>
+        if (meuNome) $('nome').value = meuNome;
+    </script>
+</body>
 </html>
